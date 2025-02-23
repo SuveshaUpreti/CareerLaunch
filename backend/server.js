@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 5001;
 const MONGO_URI = process.env.MONGO_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const apiRoutes = require("./api"); // ✅ Import API routes
 
 // Ensure environment variables are set
 if (!MONGO_URI || !JWT_SECRET || !GEMINI_API_KEY) {
@@ -169,6 +170,8 @@ profileRouter.get("/", authenticateUser, async (req, res) => {
 });
 
 app.use("/api/profile", profileRouter);
+// ✅ Use API routes
+app.use("/api", apiRoutes);
 
 // ✅ Generate Chronological Cover Letter
 app.post("/api/generate-chronological-cover-letter", async (req, res) => {
