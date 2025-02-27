@@ -15,34 +15,48 @@ const Dashboard: React.FC = () => {
   const [jobDescription, setJobDescription] = useState("");
   const [coverLetter, setCoverLetter] = useState("");
   const [favoriteTitle, setFavoriteTitle] = useState("");
+  
+// ✅ Fetch Profile Function
+const fetchProfile = () => {
+  const token = localStorage.getItem("token");
 
-  // Fetch saved profile on load with Authorization
-  useEffect(() => {
-    const token = localStorage.getItem("token");
+  if (!token) {
+    console.error("🚨 No token found. Redirecting to login...");
+    alert("Session expired. Please log in again.");
+    localStorage.removeItem("token");
+    return;
+  }
 
-    if (!token) {
-      console.error("🚨 No token found. Redirecting to login...");
-      return;
-    }
-
-    fetch("http://localhost:5001/api/profile", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+  fetch("http://localhost:5001/api/profile", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  })
+    .then((res) => {
+      if (res.status === 401 || res.status === 403) {
+        console.error(`❌ Unauthorized (${res.status}): Removing token and logging out.`);
+        alert("Session expired. Please log in again.");
+        localStorage.removeItem("token");
+        return null;
+      }
+      return res.json();
     })
-      .then((res) => {
-        if (res.status === 401) {
-          throw new Error("Unauthorized. Please log in again.");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (data) setProfile(data);
-      })
-      .catch((err) => console.error("❌ Failed to fetch profile:", err));
-  }, []);
+    .then((data) => {
+      if (data) {
+        setProfile(data); // ✅ Store fetched profile data
+      }
+    })
+    .catch((err) => {
+      console.error("❌ Failed to fetch profile:", err);
+    });
+};
+
+// ✅ Call `fetchProfile()` on component mount
+useEffect(() => {
+  fetchProfile();
+}, []);
 
   // Save user profile to backend with Authorization
   const handleSaveProfile = () => {
@@ -74,12 +88,14 @@ const Dashboard: React.FC = () => {
         : "http://localhost:5001/api/generate-short-cover-letter";
 
     try {
-      console.log(`🔄 Generating ${type} cover letter...`);
+      console.log("🔍 API Request Payload:", JSON.stringify({ profile, jobDescription }, null, 2));
+
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile, jobDescription }),
       });
+      
 
       if (!response.ok) {
         throw new Error("Failed to generate cover letter");

@@ -114,18 +114,24 @@ authRouter.post("/register", async (req, res) => {
   }
 });
 
-// ✅ Login User
 authRouter.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "User not found" });
+
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "1h" });
+    // ✅ Issue a new token on login
+    const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
     res.json({ token });
   } catch (error) {
@@ -133,6 +139,9 @@ authRouter.post("/login", async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 });
+
+
+
 
 // ✅ Profile Routes
 const profileRouter = express.Router();
@@ -173,16 +182,40 @@ app.use("/api/profile", profileRouter);
 // ✅ Use API routes
 app.use("/api", apiRoutes);
 
-// ✅ Generate Chronological Cover Letter
 app.post("/api/generate-chronological-cover-letter", async (req, res) => {
   try {
     const { profile, jobDescription } = req.body;
-    if (!profile || !jobDescription) return res.status(400).json({ message: "Profile and job description are required" });
+    if (!profile || !jobDescription) {
+      return res.status(400).json({ message: "Profile and job description are required" });
+    }
 
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
-        contents: [{ parts: [{ text: `Formal cover letter for ${jobDescription} and take all input from the data from profile including linkedin, name, etc with detailed profile:\n\n${JSON.stringify(profile, null, 2)}. Dont add emoty fileds if no info such as [date]` }] }]
+        contents: [
+          {
+            parts: [
+              {
+                text: `Write a professional and tailored cover letter for the role of ${jobDescription} at the respective company, incorporating the following structure:
+
+**Dear [Hiring Manager Name],**
+
+I am writing to express my keen interest in the ${jobDescription} position with [Company Name], as advertised on [Platform where you saw the job posting]. As a highly motivated and results-oriented Software Engineer with a Bachelor of Science in Computer Science from Texas State University and over two years of experience in full-stack development, I am confident my skills and experience align perfectly with the requirements of this role. My proficiency in JavaScript, Python, and SQL, coupled with my experience building and deploying responsive web applications, make me a strong candidate.
+
+**Paragraph 2:**  
+Highlight your relevant projects and skills that directly relate to the job description. Address specific skills mentioned in the job posting that are not explicitly in your resume, and express how you have some experience with them or a strong willingness to learn.
+
+**Paragraph 3:**  
+Conclude by emphasizing the unique traits that set you apart from other candidates. End with a strong closing statement expressing enthusiasm for the role and the company's mission.
+
+Here is my profile data to personalize the letter:
+${JSON.stringify(profile, null, 2)}
+
+Do **not** include personal information such as [Your Name], [Your Address], or [Your Phone Number]. Do **not** include empty fields such as [Date] if no data is available. Ensure that the letter sounds professional, confident, and tailored to the role.`
+              }
+            ]
+          }
+        ]
       }
     );
 
@@ -193,16 +226,42 @@ app.post("/api/generate-chronological-cover-letter", async (req, res) => {
   }
 });
 
-// ✅ Generate Short Cover Letter
+
+
 app.post("/api/generate-short-cover-letter", async (req, res) => {
   try {
     const { profile, jobDescription } = req.body;
-    if (!profile || !jobDescription) return res.status(400).json({ message: "Profile and job description are required" });
+    if (!profile || !jobDescription) {
+      return res.status(400).json({ message: "Profile and job description are required" });
+    }
 
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
-        contents: [{ parts: [{ text: `Short cover letter for ${jobDescription}:\n\n${JSON.stringify(profile, null, 2)}` }] }]
+        contents: [
+          {
+            parts: [
+              {
+                text: `Write a **concise and compelling** short cover letter for the position of **${jobDescription}** that follows this structure:
+
+**Paragraph 1:**  
+Introduce yourself and express your interest in applying for this role at the company. Mention your degree and key skills briefly, along with why this opportunity excites you.
+
+**Paragraph 2:**  
+Provide **five strong reasons** why you are an excellent fit for the position:
+- **Two points** should highlight **unique qualities** from my profile that make me stand out, such as my involvement in leadership roles like Vice President of .EXE, my unique experience with full-stack development, or my work on personalized task manager apps.
+- **Three points** should focus on **skills that match the job description**, including key abilities you already possess (e.g., proficiency in JavaScript, Python, SQL, etc.), and additional skills relevant to the role.
+
+Ensure the letter is **professional, confident, and impactful**. Keep the wording concise and avoid empty fields like [date], ensuring the letter is direct and tailored to the job.
+
+Here is my profile data to personalize the letter:
+${JSON.stringify(profile, null, 2)}
+
+**Do not** include placeholders such as [Your Name], [Your Address], or [Date], and make sure to omit any empty fields. Focus only on the unique qualities and key skills that directly relate to the job.`
+              }
+            ]
+          }
+        ]
       }
     );
 
@@ -212,6 +271,7 @@ app.post("/api/generate-short-cover-letter", async (req, res) => {
     res.status(500).json({ message: "Failed to generate cover letter", error });
   }
 });
+
 
 // ✅ Start Server
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

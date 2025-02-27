@@ -19,21 +19,27 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
+  
       const data = await response.json();
+      console.log("🔍 API Response:", data); // ✅ Debugging API response
+  
       if (!response.ok) throw new Error(data.message);
-
+  
       if (isLogin) {
+        console.log("✅ Token received:", data.token); // ✅ Debugging Token
         localStorage.setItem("token", data.token);
         onLogin(data.token);
+        alert("🎉 Login successful!");
       } else {
         setMessage({ type: "success", text: "✔️ Registered Successfully! Now please press sign in." });
         setTimeout(() => setIsLoginMode(true), 2000); // Auto-switch to login after 2 seconds
       }
     } catch (err: any) {
+      console.error("❌ Auth Error:", err.message);
       setMessage({ type: "error", text: `❌ ${err.message}` });
     }
   };
+  
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
