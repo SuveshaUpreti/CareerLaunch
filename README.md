@@ -1,7 +1,7 @@
 
 
 # ResumeAI 📝🚀
-**AI-powered Resume & Cover Letter Generator**
+**AI-powered Cover Letter Generator**
 
 ## **📌 Overview**
 **ResumeAI** is a full-stack application that helps users generate professional resumes and cover letters using AI. It features:
